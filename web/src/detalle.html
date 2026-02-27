@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detalle</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import React from "react";
+      import { createRoot } from "react-dom/client";
+      import { ChakraProvider } from "@chakra-ui/react";
+      import Detalle from "./Detalle";
+      const root = createRoot(document.getElementById("root"));
+      root.render(React.createElement(ChakraProvider, null, React.createElement(Detalle)));
+    </script>
+  </body>
+  </html>
