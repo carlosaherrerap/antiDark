@@ -64,11 +64,11 @@ INSERT INTO extension_natural (id_entidades, fec_nac, tez, estatura, estado_civi
 SELECT 1002, DATE '1991-03-22', 'blanca', 165, 'Casada', 'Peruana', 'Maestría'
 WHERE NOT EXISTS (SELECT 1 FROM extension_natural WHERE id_entidades=1002);
 
-INSERT INTO extension_judicial (id_entidades, fec_nac, tez, estatura, estado_civil, origen)
-SELECT 2001, DATE '2005-01-01', 'N/A', 0, 'N/A', 'Registro Judicial'
+INSERT INTO extension_judicial (id_entidades, fec_creacion, ubigeo, ip, web, origen)
+SELECT 2001, DATE '2005-01-01', '150101', '192.168.1.1', 'www.construccionesnorte.pe', 'Registro Judicial'
 WHERE NOT EXISTS (SELECT 1 FROM extension_judicial WHERE id_entidades=2001);
-INSERT INTO extension_judicial (id_entidades, fec_nac, tez, estatura, estado_civil, origen)
-SELECT 2002, DATE '2003-01-01', 'N/A', 0, 'N/A', 'Registro Sanciones'
+INSERT INTO extension_judicial (id_entidades, fec_creacion, ubigeo, ip, web, origen)
+SELECT 2002, DATE '2003-01-01', '150102', '10.0.0.1', 'www.globalinversiones.com', 'Registro Sanciones'
 WHERE NOT EXISTS (SELECT 1 FROM extension_judicial WHERE id_entidades=2002);
 
 -- HISTORIAL MANCHAS
@@ -136,8 +136,8 @@ AND NOT EXISTS (SELECT 1 FROM notificaciones n WHERE n.id_base_programada=5002 A
 
 -- HISTORIAL DE CONSULTAS
 INSERT INTO historial_consultas (id_usuarios, id_entidad, tipo)
-SELECT u.id, 1001, 'search' FROM usuarios u WHERE u.usuario='admin'
+SELECT u.id, 1001, 'unitario' FROM usuarios u WHERE u.usuario='admin'
 AND NOT EXISTS (SELECT 1 FROM historial_consultas h WHERE h.id_usuarios=u.id AND h.id_entidad=1001);
 INSERT INTO historial_consultas (id_usuarios, id_entidad, tipo)
-SELECT u.id, 2001, 'search' FROM usuarios u WHERE u.usuario='usuario1'
+SELECT u.id, 2001, 'unitario' FROM usuarios u WHERE u.usuario='usuario1'
 AND NOT EXISTS (SELECT 1 FROM historial_consultas h WHERE h.id_usuarios=u.id AND h.id_entidad=2001);

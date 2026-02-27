@@ -71,8 +71,18 @@ export default function LoginPage() {
                 <span className="material-symbols-outlined text-lg">arrow_forward</span>
               </button>
             </form>
-            <div className="flex justify-center">
-              <button className="text-sm text-primary font-bold hover:underline" onClick={() => window.location.href = `${apiUrl}/auth/google/login?redirect=${encodeURIComponent(window.location.origin + "/")}`}>Ingresar con Google</button>
+            <div className="flex justify-center border-t border-slate-100 pt-6">
+              <button
+                className="flex items-center justify-center gap-3 w-full h-12 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm group"
+                onClick={() => window.location.href = `${apiUrl}/auth/google/login?redirect=${encodeURIComponent(window.location.origin + "/")}`}
+              >
+                <img
+                  src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png"
+                  alt="Google"
+                  className="w-5 h-5 group-hover:scale-110 transition-transform"
+                />
+                <span className="text-sm font-black text-slate-700 uppercase tracking-widest">Ingresar con Google</span>
+              </button>
             </div>
             <div className="flex justify-center">
               <button className="text-sm text-[#616f89] hover:underline" onClick={() => navigate("/registro")}>Crear cuenta</button>

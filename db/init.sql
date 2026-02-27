@@ -5,13 +5,13 @@ CREATE TABLE IF NOT EXISTS entidades (
   id SERIAL PRIMARY KEY,
   tipo_documento VARCHAR(50),
   documento VARCHAR(50),
-  tipo_entidad VARCHAR(50),
+  tipo_entidad VARCHAR(50), -- NATURAL o JURIDICA
   fecha_registro DATE DEFAULT CURRENT_DATE,
   departamento VARCHAR(100),
   provincia VARCHAR(100),
   distrito VARCHAR(100),
   direccion VARCHAR(200),
-  tipo VARCHAR(50),
+  tipo VARCHAR(50), -- Reservado para clasificación específica interna
   rubro VARCHAR(100)
 );
 
@@ -61,10 +61,10 @@ CREATE TABLE IF NOT EXISTS extension_natural (
 CREATE TABLE IF NOT EXISTS extension_judicial (
   id SERIAL PRIMARY KEY,
   id_entidades INTEGER REFERENCES entidades(id) ON DELETE CASCADE,
-  fec_nac DATE,
-  tez VARCHAR(50),
-  estatura INTEGER,
-  estado_civil VARCHAR(50),
+  fec_creacion DATE,
+  ubigeo VARCHAR(50),
+  ip VARCHAR(50),
+  web VARCHAR(150),
   origen VARCHAR(100)
 );
 
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS historial_consultas (
   id_usuarios INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
   id_entidad INTEGER REFERENCES entidades(id) ON DELETE SET NULL,
   fecha_consulta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  tipo VARCHAR(50)
+  tipo VARCHAR(50) CHECK (tipo IN ('masivo', 'unitario'))
 );
 
 CREATE TABLE IF NOT EXISTS rol (

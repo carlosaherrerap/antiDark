@@ -12,7 +12,8 @@ function captureTokenFromUrl() {
   const token = hash.get("token");
   if (token) {
     localStorage.setItem("auth_token", token);
-    history.replaceState({}, document.title, window.location.pathname);
+    const cleanPath = window.location.pathname.replace(/\/+/g, "/");
+    history.replaceState({}, document.title, cleanPath);
   }
 }
 captureTokenFromUrl();

@@ -155,13 +155,25 @@ app.get("/auth/google/callback", async (req, res) => {
 function requireAuth(req: any, res: any, next: any) {
   try {
     const auth = String(req.headers.authorization || "");
-    const decoded = jwt.verify(auth.replace("Bearer ", ""), jwtSecret) as any;
+    const token = auth.replace("Bearer ", "");
+    if (!token) return res.status(401).json({ error: "No token" });
+    const decoded = jwt.verify(token, jwtSecret) as any;
     req.uid = Number(decoded.uid);
     next();
   } catch {
-    res.status(401).json({ error: "token inválido" });
+    res.status(401).json({ error: "No autorizado" });
   }
 }
+
+app.get("/profile", requireAuth, async (req: any, res) => {
+  try {
+    const user = await pool.query("SELECT * FROM usuarios WHERE id = $1", [req.uid]);
+    if (user.rows.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+    res.json(user.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: "Error al cargar perfil" });
+  }
+});
 
 async function consumeOneToken(uid: number): Promise<number> {
   const r = await pool.query(
@@ -420,7 +432,7 @@ app.get("/entity/:id/detail-access", requireAuth, async (req, res) => {
     if (left < 0) return res.status(402).json({ error: "sin tokens suficentes" });
 
     // Registrar en historial
-    await pool.query("INSERT INTO historial_consultas(id_usuarios, id_entidad, tipo) VALUES($1,$2,$3)", [uid, id, "detail_view"]);
+    await pool.query("INSERT INTO historial_consultas(id_usuarios, id_entidad, tipo) VALUES($1,$2,$3)", [uid, id, "unitario"]);
 
     // Obtener detalles completos
     const entidad = await pool.query("SELECT * FROM entidades WHERE id=$1", [id]);
