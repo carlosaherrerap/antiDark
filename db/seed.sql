@@ -28,16 +28,16 @@ AND NOT EXISTS (SELECT 1 FROM token t WHERE t.id_usuarios = u.id);
 
 -- ENTIDADES (naturales y jurídicas)
 INSERT INTO entidades (id, tipo_documento, documento, tipo_entidad, departamento, provincia, distrito, direccion, tipo, rubro)
-SELECT 1001, 'DNI', '45672831', 'natural', 'Lima', 'Lima', 'Miraflores', 'Av. Pardo 123', 'PEP', 'Servicios'
+SELECT 1001, 'DNI', '45672831', 'natural', 'Lima', 'Lima', 'Miraflores', 'Av. Pardo 123', 'individual', 'Servicios'
 WHERE NOT EXISTS (SELECT 1 FROM entidades WHERE id=1001);
 INSERT INTO entidades (id, tipo_documento, documento, tipo_entidad, departamento, provincia, distrito, direccion, tipo, rubro)
-SELECT 1002, 'DNI', '70221932', 'natural', 'Lima', 'Lima', 'San Isidro', 'Calle Golf 321', 'Noticias Adversas', 'Consultoría'
+SELECT 1002, 'DNI', '70221932', 'natural', 'Lima', 'Lima', 'San Isidro', 'Calle Golf 321', 'individual', 'Consultoría'
 WHERE NOT EXISTS (SELECT 1 FROM entidades WHERE id=1002);
 INSERT INTO entidades (id, tipo_documento, documento, tipo_entidad, departamento, provincia, distrito, direccion, tipo, rubro)
-SELECT 2001, 'RUC', '20448192033', 'juridica', 'Lambayeque', 'Chiclayo', 'Chiclayo', 'Av. Bolognesi 450', 'Actos Ilícitos', 'Construcción'
+SELECT 2001, 'RUC', '20448192033', 'juridica', 'Lambayeque', 'Chiclayo', 'Chiclayo', 'Av. Bolognesi 450', 'privada', 'Construcción'
 WHERE NOT EXISTS (SELECT 1 FROM entidades WHERE id=2001);
 INSERT INTO entidades (id, tipo_documento, documento, tipo_entidad, departamento, provincia, distrito, direccion, tipo, rubro)
-SELECT 2002, 'RUC', '20109928374', 'juridica', 'Lima', 'Lima', 'La Molina', 'Camacho 889', 'Sanciones Intern.', 'Finanzas'
+SELECT 2002, 'RUC', '20109928374', 'juridica', 'Lima', 'Lima', 'La Molina', 'Camacho 889', 'privada', 'Finanzas'
 WHERE NOT EXISTS (SELECT 1 FROM entidades WHERE id=2002);
 
 -- PERSONAS NATURALES

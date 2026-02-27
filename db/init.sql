@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS entidades (
   provincia VARCHAR(100),
   distrito VARCHAR(100),
   direccion VARCHAR(200),
-  tipo VARCHAR(50), -- Reservado para clasificación específica interna
+  tipo VARCHAR(50) CHECK (tipo IN ('publica', 'privada', 'individual', 'entidad', 'etc')), -- Clasificación específica
   rubro VARCHAR(100)
 );
 
