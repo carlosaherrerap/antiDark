@@ -33,7 +33,7 @@ export default function CompletarPerfilPage() {
             return;
         }
 
-        // Decode token to see if it's from Google (email present but maybe no usuario set)
+        // Decodificar el token para ver si es de Google (hay un correo electrónico presente, pero quizás no hay ningún usuario configurado)
         try {
             const base64Url = token.split('.')[1];
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');

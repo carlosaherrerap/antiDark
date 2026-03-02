@@ -76,7 +76,7 @@ export default function ProfilePage() {
           <header className="flex justify-between items-center mb-8">
             <div>
               <h2 className="text-3xl font-black tracking-tight text-[#111318] dark:text-white uppercase">Mi Perfil</h2>
-              <p className="text-[#616f89] text-sm font-medium">Gestiona tu cuenta y datos de acceso.</p>
+              {/* <p className="text-[#616f89] text-sm font-medium">Gestiona tu cuenta y datos de acceso.</p> */}
             </div>
             <div className="flex gap-3">
               <button className="px-5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-[#dbdfe6] dark:border-slate-700 text-[10px] font-black uppercase tracking-widest text-[#111318] dark:text-white hover:bg-gray-50 dark:hover:bg-slate-750 transition-colors shadow-sm">Descartar</button>

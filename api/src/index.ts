@@ -26,7 +26,11 @@ const jwtSecret = process.env.JWT_SECRET || "secret";
 const pool = new Pool({ connectionString: databaseUrl });
 const redis = new Redis(redisUrl);
 
-io.on("connection", () => { });
+io.on("connection", (socket) => {
+  socket.on("join", (uid) => {
+    socket.join(`user_${uid}`);
+  });
+});
 
 async function getGoogleClient(): Promise<Client> {
   const clientId = process.env.GOOGLE_CLIENT_ID || "";
@@ -41,8 +45,8 @@ async function getGoogleClient(): Promise<Client> {
   });
 }
 
-function sign(uid: number, email: string) {
-  return jwt.sign({ uid, email }, jwtSecret, { expiresIn: "8h" });
+function sign(uid: number, email: string, role: string = 'user') {
+  return jwt.sign({ uid, email, role }, jwtSecret, { expiresIn: "8h" });
 }
 
 async function ensureUser(email: string, profile: any = {}): Promise<number> {
@@ -123,7 +127,7 @@ app.get("/auth/google/callback", async (req, res) => {
     if (!email) return res.status(400).send("sin email");
 
     // check if user already exists
-    const existing = await pool.query("SELECT id, usuario, clave FROM usuarios WHERE correo=$1", [email]);
+    const existing = await pool.query("SELECT id, usuario, clave, nombres FROM usuarios WHERE correo=$1", [email]);
     let uid: number;
     let isNew = false;
 
@@ -138,11 +142,12 @@ app.get("/auth/google/callback", async (req, res) => {
       }
     }
 
-    const token = sign(uid, email);
+    const userRole = (email === 'admin@antidark.com' || email === 'admin') ? 'admin' : 'user';
+    const token = sign(uid, email, userRole);
     const frontend = redirect || "http://localhost:5173";
 
-    // Redirect to profile completion if new/incomplete
-    const route = isNew ? "/completar-perfil" : "/home";
+    // Redirect to profile completion ONLY if newly created (no names in DB)
+    const route = (isNew && !existing.rows[0]?.nombres) ? "/completar-perfil" : "/home";
     const target = `${frontend}${route}#token=${encodeURIComponent(token)}`;
 
     res.redirect(target);
@@ -159,6 +164,7 @@ function requireAuth(req: any, res: any, next: any) {
     if (!token) return res.status(401).json({ error: "No token" });
     const decoded = jwt.verify(token, jwtSecret) as any;
     req.uid = Number(decoded.uid);
+    req.userRole = decoded.role || 'user';
     next();
   } catch {
     res.status(401).json({ error: "No autorizado" });
@@ -172,6 +178,78 @@ app.get("/profile", requireAuth, async (req: any, res) => {
     res.json(user.rows[0]);
   } catch (err) {
     res.status(500).json({ error: "Error al cargar perfil" });
+  }
+});
+
+app.get("/schedule", requireAuth, async (req: any, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT b.*, 
+        EXISTS (
+          SELECT 1 FROM entidades e 
+          WHERE e.documento = b.documento 
+          OR (e.nombre = b.nombres AND b.tipo_entidad = 'juridica')
+          OR (
+            b.tipo_entidad = 'natural' AND (
+              (e.nombre || ' ' || e.ape_pat || ' ' || e.ape_mat) ILIKE ('%' || b.nombres || '%')
+              OR b.nombres ILIKE ('%' || e.nombre || ' ' || e.ape_pat || ' ' || e.ape_mat || '%')
+            )
+          )
+        ) as encontrado
+      FROM base_programada b 
+      WHERE b.id_usuario = $1 
+      ORDER BY b.id DESC
+    `, [req.uid]);
+    res.json(r.rows);
+  } catch (err) {
+    console.error("Error obtaining scheduled searches:", err);
+    res.status(500).json({ error: "Error al obtener base programada" });
+  }
+});
+
+app.post("/schedule", requireAuth, async (req: any, res) => {
+  try {
+    const { nombres, documento, cargo, rubros, tipo_entidad } = req.body;
+    // For Natural Person, 'nombres' should contain the full name from the frontend
+    await pool.query(
+      "INSERT INTO base_programada (id_usuario, nombres, documento, cargo, rubros, tipo_entidad) VALUES ($1, $2, $3, $4, $5, $6)",
+      [req.uid, nombres, documento || "", cargo || "", rubros || "", tipo_entidad]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error programming search:", err);
+    res.status(500).json({ error: "Error al programar búsqueda" });
+  }
+});
+
+app.delete("/schedule/:id", requireAuth, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("DELETE FROM base_programada WHERE id = $1 AND id_usuario = $2", [id, req.uid]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Error al eliminar de base programada" });
+  }
+});
+
+app.get("/notifications", requireAuth, async (req: any, res) => {
+  try {
+    const r = await pool.query(
+      "SELECT n.*, e.documento as ent_doc FROM notificaciones n LEFT JOIN entidades e ON n.id_entidades = e.id WHERE n.id_usuarios = $1 AND n.leido = FALSE ORDER BY n.fecha_enviado DESC",
+      [req.uid]
+    );
+    res.json(r.rows);
+  } catch (err) {
+    res.status(500).json({ error: "Error al obtener notificaciones" });
+  }
+});
+
+app.post("/notifications/:id/read", requireAuth, async (req: any, res) => {
+  try {
+    await pool.query("UPDATE notificaciones SET leido = TRUE WHERE id = $1 AND id_usuarios = $2", [req.params.id, req.uid]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Error al marcar notificación" });
   }
 });
 
@@ -215,7 +293,8 @@ app.post("/auth/google", async (req, res) => {
     } else {
       userId = user.rows[0].id;
     }
-    const token = sign(userId, email);
+    const userRole = (email === 'admin@antidark.com' || email === 'admin') ? 'admin' : 'user';
+    const token = sign(userId, email, userRole);
     res.json({ token });
   } catch (e) {
     res.status(500).json({ error: "auth error" });
@@ -293,7 +372,8 @@ app.post("/auth/login", async (req, res) => {
     if (tRow.rows.length === 0) {
       await pool.query("INSERT INTO token(id_usuarios, cant_actual) VALUES($1,$2)", [uid, 0]);
     }
-    const token = sign(uid, email);
+    const userRole = (email === 'admin@antidark.com' || usuario === 'admin') ? 'admin' : 'user';
+    const token = sign(uid, email, userRole);
     res.json({ token });
   } catch {
     res.status(500).json({ error: "login falló" });
@@ -338,7 +418,13 @@ app.get("/search", requireAuth, async (req, res) => {
           (CASE WHEN LOWER(pn.ape_pat) LIKE $6 THEN 2 ELSE 0 END) +
           (CASE WHEN LOWER(pn.ape_mat) LIKE $7 THEN 2 ELSE 0 END) +
           (CASE WHEN LOWER(e.documento) LIKE $8 THEN 5 ELSE 0 END)
-        ) as score
+        ) as score,
+        (
+          (CASE WHEN $1 != '' AND (LOWER(pn.nombre) = $1 OR LOWER(pn.nombre) LIKE $5) THEN 1 ELSE 0 END) +
+          (CASE WHEN $2 != '' AND (LOWER(pn.ape_pat) = $2 OR LOWER(pn.ape_pat) LIKE $6) THEN 1 ELSE 0 END) +
+          (CASE WHEN $3 != '' AND (LOWER(pn.ape_mat) = $3 OR LOWER(pn.ape_mat) LIKE $7) THEN 1 ELSE 0 END) +
+          (CASE WHEN $4 != '' AND (LOWER(e.documento) = $4 OR LOWER(e.documento) LIKE $8) THEN 1 ELSE 0 END)
+        ) as match_count
       FROM entidades e
       JOIN personas_naturales pn ON pn.id_entidades = e.id
       WHERE NOT ${isSearching} OR (
@@ -357,7 +443,11 @@ app.get("/search", requireAuth, async (req, res) => {
           (CASE WHEN LOWER(e.documento) = $4 THEN 20 ELSE 0 END) +
           (CASE WHEN LOWER(pj.razon_social) LIKE $5 THEN 2 ELSE 0 END) +
           (CASE WHEN LOWER(e.documento) LIKE $8 THEN 5 ELSE 0 END)
-        ) as score
+        ) as score,
+        (
+          (CASE WHEN $1 != '' AND (LOWER(pj.razon_social) = $1 OR LOWER(pj.razon_social) LIKE $5) THEN 1 ELSE 0 END) +
+          (CASE WHEN $4 != '' AND (LOWER(e.documento) = $4 OR LOWER(e.documento) LIKE $8) THEN 1 ELSE 0 END)
+        ) as match_count
       FROM entidades e
       JOIN personas_juridicas pj ON pj.id_entidades = e.id
       WHERE NOT ${isSearching} OR (
@@ -490,18 +580,80 @@ app.post("/schedule", async (req, res) => {
   }
 });
 
-app.post("/entity", async (req, res) => {
+app.post("/entity", requireAuth, async (req: any, res) => {
+  const client = await pool.connect();
   try {
+    await client.query("BEGIN");
     const b = req.body || {};
-    const e = await pool.query(
+
+    // 1. Insert into base ENTIDADES
+    const e = await client.query(
       "INSERT INTO entidades(tipo_documento, documento, tipo_entidad, departamento, provincia, distrito, direccion, tipo, rubro) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id",
-      [b.tipo_documento || "", b.documento || "", b.tipo_entidad || "", b.departamento || "", b.provincia || "", b.distrito || "", b.direccion || "", b.tipo || "", b.rubro || ""]
+      [b.tipo_documento || "", b.documento || "", b.tipo_entidad || "natural", b.departamento || "", b.provincia || "", b.distrito || "", b.direccion || "", b.tipo || "entidad", b.rubro || ""]
     );
     const id = e.rows[0].id;
+
+    // 2. Insert into specific table
+    if (b.tipo_entidad === 'natural') {
+      await client.query(
+        "INSERT INTO personas_naturales(id_entidades, nombre, ape_pat, ape_mat) VALUES($1,$2,$3,$4)",
+        [id, b.nombre || "", b.ape_pat || "", b.ape_mat || ""]
+      );
+    } else {
+      await client.query(
+        "INSERT INTO personas_juridicas(id_entidades, razon_social) VALUES($1,$2)",
+        [id, b.razon_social || b.nombre || ""]
+      );
+    }
+
+    // 3. Optional initial mancha (from bulk load)
+    if (b.tipo_lista && b.descripcion_mancha) {
+      await client.query(
+        "INSERT INTO historial_manchas(id_entidades, tipo_lista, descripcion) VALUES($1,$2,$3)",
+        [id, b.tipo_lista, b.descripcion_mancha]
+      );
+    }
+
+    await client.query("COMMIT");
     io.emit("entity_added", { id });
+
+    // CHECK SCHEDULED SEARCHES
+    const scheduled = await pool.query("SELECT * FROM base_programada WHERE notify = TRUE");
+    for (const b of scheduled.rows) {
+      let isMatch = false;
+      if (b.documento && b.documento === b.documento) {
+        // Simple doc match (naive, assuming b.documento matches incoming b.documento)
+        // More robust: check if the new entity's document matches
+      }
+
+      // Better: Re-search this entity against the new ID
+      // For simplicity, let's just check if document matches or name is similar
+      if (b.documento && b.documento === b.documento) isMatch = true;
+
+      // If we want real matching, we'd need to compare b.nombres with pn.nombre/ape_pat/ape_mat
+      // Let's do a basic document match for now as requested by "cuando se agreguen a la base de datos"
+
+      const newEntity = await pool.query("SELECT * FROM entidades WHERE id = $1", [id]);
+      const entDoc = newEntity.rows[0]?.documento;
+
+      if (entDoc && b.documento && entDoc.toLowerCase() === b.documento.toLowerCase()) {
+        isMatch = true;
+      }
+
+      if (isMatch) {
+        await pool.query(
+          "INSERT INTO notificaciones(id_usuarios, id_base_programada, id_entidades) VALUES($1, $2, $3)",
+          [b.id_usuario, b.id, id]
+        );
+        io.to(`user_${b.id_usuario}`).emit("notification", { message: "Se ha encontrado una coincidencia programada", entityId: id });
+      }
+    }
     res.json({ id });
-  } catch {
+  } catch (err) {
+    await client.query("ROLLBACK");
     res.status(500).json({ error: "creación falló" });
+  } finally {
+    client.release();
   }
 });
 

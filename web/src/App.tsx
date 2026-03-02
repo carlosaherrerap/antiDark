@@ -6,6 +6,7 @@ import SearchPage from "./pages/SearchPage";
 import RegisterPage from "./pages/RegisterPage";
 import HomePage from "./pages/HomePage";
 import CompletarPerfilPage from "./pages/CompletarPerfilPage";
+import { LoadPage } from "./pages/LoadPage";
 
 function isTokenValid(): boolean {
   const t = localStorage.getItem("auth_token");
@@ -39,6 +40,7 @@ export default function App() {
       <Route path="/home" element={<RequireAuth><HomePage /></RequireAuth>} />
       <Route path="/perfil" element={<RequireAuth><ProfilePage /></RequireAuth>} />
       <Route path="/busqueda" element={<RequireAuth><SearchPage /></RequireAuth>} />
+      <Route path="/load" element={<RequireAuth><LoadPage /></RequireAuth>} />
       <Route path="/" element={<Navigate to={logged ? "/home" : "/login"} replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

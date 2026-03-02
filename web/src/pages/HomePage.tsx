@@ -3,6 +3,18 @@ import { useNavigate } from "react-router-dom";
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const [userRole, setUserRole] = React.useState<string>('user');
+
+  React.useEffect(() => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      try {
+        const decoded = JSON.parse(atob(token.split('.')[1]));
+        setUserRole(decoded.role || 'user');
+      } catch { }
+    }
+  }, []);
+
   const modules = [
     { name: "Listas Negativas", icon: "search", enabled: true, href: "/busqueda" },
     { name: "Matriz de Riesgos", icon: "grid_on", enabled: false },
@@ -10,7 +22,7 @@ export default function HomePage() {
     { name: "Canal de Denuncias", icon: "campaign", enabled: false },
     { name: "Registro de Operaciones", icon: "assignment", enabled: false },
     { name: "Reporte de Operaciones", icon: "receipt_long", enabled: false },
-    { name: "Administrador", icon: "admin_panel_settings", enabled: false },
+    { name: "Administrador", icon: "admin_panel_settings", enabled: userRole === 'admin', href: "/load" },
     { name: "Mis Cursos", icon: "school", enabled: false }
   ];
   return (
@@ -21,19 +33,19 @@ export default function HomePage() {
             <span className="material-symbols-outlined">shield_person</span>
           </div>
           <div>
-            <h1 className="text-lg font-bold leading-tight">antiDark</h1>
-            <p className="text-xs text-[#616f89] font-medium">Compliance Portal</p>
+            <h1 className="text-lg font-bold leading-tight">AntiDark</h1>
+            <p className="text-xs text-[#616f89] font-medium">Prevencion y Deteccion</p>
           </div>
         </div>
         <button className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-3 py-2" onClick={() => navigate("/perfil")}>
           <div className="w-8 h-8 rounded-full bg-slate-300 overflow-hidden">
             <img className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2bfsjb0Bxscts3Po_3RkowlFbkon2tIl1sNMkI6qh8vf6IRcEZdwZdO4Pt9QCT8VJ-aWzIvgIbbYpHMPx61jtVaOoVGqbvXUFyebBm5OIXeLQN624ZTbMrs-plxctvukKt2rnMijp_HTrkfIipWsGeQQ-FuJyXIKwfknDWiIk-v7FJ699Pj5qP59h7YLFg2-aGXwYObatc-4MTcvsyj98Td-C6yYFyMAevJ7JJzBJDzv7CbpvKAg8-0MRm_OKcD6TE2wwX8ukhxE" alt="avatar" />
           </div>
-          <span className="text-sm font-semibold">Mi Perfil</span>
+          <span className="text-sm font-semibold">MI PORTAL</span>
         </button>
       </header>
       <main className="max-w-6xl mx-auto p-8">
-        <h2 className="text-2xl font-black mb-6">Módulos del sistema</h2>
+        <h2 className="text-2xl font-black mb-6">MODULOS DEL SISTEMA</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {modules.map((m) => (
             <button key={m.name} className={`p-6 rounded-xl border ${m.enabled ? "border-primary/30 bg-white hover:bg-primary/5" : "border-[#dbdfe6] bg-white/60 cursor-not-allowed"} shadow-sm flex items-center gap-3 text-left transition-colors`} onClick={() => m.enabled ? navigate(m.href!) : null}>
